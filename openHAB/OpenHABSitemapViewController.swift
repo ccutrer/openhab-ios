@@ -29,6 +29,7 @@ struct OpenHABImageProcessor: ImageProcessor {
     // `identifier` should be the same for processors with the same properties/functionality
     // It will be used when storing and retrieving the image to/from cache.
     let identifier = "org.openhab.svgprocessor"
+    let iconColor: String?
 
     // Convert input data/image to target image and return it.
     func process(item: ImageProcessItem, options: KingfisherParsedOptionsInfo) -> KFCrossPlatformImage? {
@@ -46,6 +47,11 @@ struct OpenHABImageProcessor: ImageProcessor {
                 let svgkSourceNSData = SVGKSourceNSData.source(from: data, urlForRelativeLinks: nil)
                 let parseResults = SVGKParser.parseSource(usingDefaultSVGKParser: svgkSourceNSData)
                 if parseResults?.parsedDocument != nil, let image = SVGKImage(parsedSVG: parseResults, from: svgkSourceNSData), image.hasSize() {
+                    if iconColor != nil, !iconColor!.isEmpty {
+                        if let color = UIColor(named: iconColor!) {
+                            image.setFillColor(color: color)
+                        }
+                    }
                     return image.uiImage
                 } else {
                     return UIImage(named: "error.png")
@@ -700,10 +706,15 @@ extension OpenHABSitemapViewController: UITableViewDelegate, UITableViewDataSour
                     }
                 }
 
+                var darkModeCacheKey = ""
+                if traitCollection.userInterfaceStyle == .dark {
+                    darkModeCacheKey = "dark"
+                }
+
                 cell.imageView?.kf.setImage(
-                    with: ImageResource(downloadURL: urlc, cacheKey: urlc.path + (urlc.query ?? "")),
+                    with: ImageResource(downloadURL: urlc, cacheKey: urlc.path + (urlc.query ?? "") + widget!.iconColor + darkModeCacheKey),
                     placeholder: UIImage(named: "blankicon.png"),
-                    options: [.processor(OpenHABImageProcessor())],
+                    options: [.processor(OpenHABImageProcessor(iconColor: widget!.iconColor))],
                     completionHandler: reportOnResults
                 )
             }
